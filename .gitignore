@@ -31,3 +31,8 @@ backend/database/
 # -------------------------
 backend/uploads/
 backend/uploads/*
+
+
+
+frontend/src/assets/*.jpg
+frontend/src/assets/*.png
