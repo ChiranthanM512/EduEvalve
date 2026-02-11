@@ -22,11 +22,18 @@ def missing_keywords(student_text: str, model_text: str):
 
 
 def gen_feedback(score: float):
+    if score == 0:
+        return "Not related to the topic."
     if score >= 90:
         return "Excellent answer. Very close to the model answer."
     elif score >= 75:
         return "Good answer, but a few points are missing."
     elif score >= 55:
         return "Average answer. Improve explanation and include key points."
-    else:
+    
+    elif score >= 30:
         return "Needs improvement. Many important points are missing."
+    else:
+        return "Poor answer or doesn't match the model answer. Consider revising the material and trying again."
+   
+
