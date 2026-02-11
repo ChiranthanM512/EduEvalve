@@ -8,6 +8,7 @@ from models import ModelAnswer, Result
 from services.hybrid_ocr import hybrid_ocr
 from services.scoring import semantic_score
 from services.feedback import gen_feedback, missing_keywords
+from services.text_cleaner import clean_text
 
 router = APIRouter(prefix="/eval", tags=["Evaluation"])
 
@@ -21,6 +22,9 @@ def evaluate(req: EvaluateRequest, db: Session = Depends(get_db)):
 
     # 2) OCR
     extracted_text, engine, lang = hybrid_ocr(req.file_path)
+    
+    extracted_text = clean_text(extracted_text)
+
 
     if not extracted_text or len(extracted_text.strip()) < 3:
         raise HTTPException(status_code=400, detail="OCR failed: no readable text found")
@@ -47,6 +51,16 @@ def evaluate(req: EvaluateRequest, db: Session = Depends(get_db)):
     db.add(row)
     db.commit()
     db.refresh(row)
+    # ✅ delete uploaded file after evaluation
+    import os
+    if os.path.exists(req.file_path):
+        os.remove(req.file_path)
+
+
+    # delete cleaned version if exists
+    clean_path = req.file_path.replace(".", "_clean.")
+    if os.path.exists(clean_path):
+        os.remove(clean_path)
 
     return {
         "text": extracted_text,
