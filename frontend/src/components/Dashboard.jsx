@@ -120,7 +120,7 @@ export default function Dashboard() {
         transition={{ duration: 0.5 }}
       >
         <div className="dashHeroLeft">
-          <h1 className="dashTitle">Welcome to EduEvalve 📘</h1>
+          <h1 className="dashTitle">Hi! Welcome to EduEvalve 📘</h1>
           <p className="dashSubtitle">
             Track evaluations, view score trends, and monitor student progress in
             one place.
