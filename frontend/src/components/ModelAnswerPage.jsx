@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import API from "../api";
 import { motion } from "framer-motion";
 import eduImg from "../assets/image2.jpg";
@@ -10,6 +10,9 @@ export default function ModelAnswerPage() {
   const [editing, setEditing] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editText, setEditText] = useState("");
+
+  // ✅ Ref for scrolling to Create Form Card
+  const createFormRef = useRef(null);
 
   async function loadAnswers() {
     const res = await API.get("/model-answers/");
@@ -54,6 +57,11 @@ export default function ModelAnswerPage() {
     setEditing(answer.id);
     setEditTitle(answer.question_title);
     setEditText(answer.model_text);
+
+    // ✅ scroll to edit card
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }, 150);
   }
 
   function cancelEdit() {
@@ -62,34 +70,67 @@ export default function ModelAnswerPage() {
     setEditText("");
   }
 
+  // ✅ Scroll down when Start Creating clicked
+  function handleStartCreating() {
+    if (createFormRef.current) {
+      createFormRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }
+
+  // ✅ Example Auto Fill
+  function fillExample() {
+    setTitle("Deadlock");
+    setText(
+      `Deadlock is a condition in an operating system where a group of processes are unable to proceed because each process is holding a resource and waiting for another resource held by another process.
+
+Deadlock occurs when the following four necessary conditions are satisfied:
+1) Mutual Exclusion
+2) Hold and Wait
+3) No Preemption
+4) Circular Wait`
+    );
+
+    // scroll to form
+    setTimeout(() => {
+      if (createFormRef.current) {
+        createFormRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
+  }
+
   useEffect(() => {
     loadAnswers();
   }, []);
 
   return (
     <div className="container">
-      {/* ✅ TOP BANNER (Dashboard Style) */}
+      {/* ✅ TOP HERO CARD */}
       <motion.div
         className="card"
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1.2fr",
-          gap: "22px",
+          display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
-          padding: "22px",
-          marginBottom: "22px",
+          gap: "25px",
+          padding: "35px",
         }}
       >
-        {/* LEFT SIDE */}
-        <div>
-          <h1 style={{ margin: 0, fontSize: "34px", fontWeight: 800 }}>
+        {/* Left Side */}
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>
             Create Model Answer 📘
           </h1>
 
-          <p style={{ marginTop: "8px", fontSize: "15px", opacity: 0.85 }}>
+          <p style={{ fontSize: "15px", opacity: 0.85, maxWidth: "520px" }}>
             Add model answers to evaluate student responses using Hybrid OCR and
             semantic scoring.
           </p>
@@ -97,49 +138,111 @@ export default function ModelAnswerPage() {
           <motion.button
             whileHover={{ y: -2, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              const el = document.getElementById("create-form");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-            style={{ marginTop: "14px" }}
+            onClick={handleStartCreating}
+            style={{ marginTop: "18px" }}
           >
             Start Creating
           </motion.button>
         </div>
 
-        {/* RIGHT SIDE IMAGE */}
+        {/* Right Side Image */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
+          initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           style={{
-            width: "100%",
+            flex: 1,
             display: "flex",
             justifyContent: "flex-end",
           }}
         >
           <img
             src={eduImg}
-            alt="Education Banner"
+            alt="Education"
             style={{
               width: "100%",
-              height: "240px",
+              maxWidth: "650px",
+              height: "260px",
               objectFit: "cover",
               borderRadius: "18px",
-              boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
-              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0px 8px 22px rgba(0,0,0,0.15)",
             }}
           />
         </motion.div>
       </motion.div>
 
-      {/* ✅ CREATE FORM CARD */}
+      {/* ✅ EXAMPLE CARD (NEW) */}
       <motion.div
-        id="create-form"
         className="card"
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
+        transition={{ duration: 0.45, delay: 0.05 }}
+        style={{
+          borderLeft: "6px solid #0d6efd",
+          background: "#f8fbff",
+        }}
+      >
+        <h2 style={{ marginBottom: "10px" }}>Example: How to Create Model Answer</h2>
+
+        <p style={{ marginBottom: "12px", opacity: 0.85 }}>
+          Follow this format while writing model answers:
+        </p>
+
+        <div
+          style={{
+            background: "white",
+            border: "1px solid #dfe7ff",
+            borderRadius: "12px",
+            padding: "15px",
+            fontSize: "14px",
+            lineHeight: "1.6",
+          }}
+        >
+          <b>Question Title:</b> Deadlock
+          <br />
+          <br />
+          <b>Model Answer:</b>
+          <br />
+          Deadlock is a condition in an operating system where a group of processes
+          are unable to proceed because each process is holding a resource and
+          waiting for another resource held by another process.
+          <br />
+          <br />
+          Deadlock occurs when the following four necessary conditions are satisfied:
+          <br />
+          1) Mutual Exclusion <br />
+          2) Hold and Wait <br />
+          3) No Preemption <br />
+          4) Circular Wait
+        </div>
+
+        <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
+          <motion.button
+            whileHover={{ y: -2, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={fillExample}
+          >
+            Use This Example
+          </motion.button>
+
+          <motion.button
+            whileHover={{ y: -2, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleStartCreating}
+            style={{ backgroundColor: "#6c757d" }}
+          >
+            Go to Form ↓
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* ✅ CREATE FORM CARD (TARGET SCROLL HERE) */}
+      <motion.div
+        ref={createFormRef}
+        className="card"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.07 }}
       >
         <h2>Create Model Answer</h2>
 
@@ -165,12 +268,12 @@ export default function ModelAnswerPage() {
         </motion.button>
       </motion.div>
 
-      {/* ✅ TABLE CARD */}
+      {/* ✅ SAVED TABLE */}
       <motion.div
         className="card"
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.05 }}
+        transition={{ duration: 0.45, delay: 0.09 }}
       >
         <h2>Saved Model Answers</h2>
 
@@ -186,7 +289,6 @@ export default function ModelAnswerPage() {
                 <th>Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {answers.map((a) => (
                 <tr key={a.id}>
