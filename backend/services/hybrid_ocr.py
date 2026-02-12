@@ -1,3 +1,4 @@
+import os
 import cv2
 import torch
 from PIL import Image
@@ -6,11 +7,13 @@ from langdetect import detect
 import easyocr
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
+# ✅ pdf2image converter
+from services.pdf_to_images import pdf_to_images
+
 
 # -----------------------------
 # Setup
 # -----------------------------
-
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-large-handwritten")
@@ -18,19 +21,16 @@ trocr_model = VisionEncoderDecoderModel.from_pretrained(
     "microsoft/trocr-large-handwritten"
 ).to(DEVICE)
 
-# EasyOCR (multilingual detector)
 easy_reader = easyocr.Reader(["en"], gpu=torch.cuda.is_available())
 
 
 # -----------------------------
 # Preprocess crop
 # -----------------------------
-
 def preprocess_crop(crop):
     if crop is None or crop.size == 0:
         return None
 
-    # if crop height or width too small
     if crop.shape[0] < 10 or crop.shape[1] < 20:
         return None
 
@@ -38,18 +38,17 @@ def preprocess_crop(crop):
     gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
     gray = cv2.fastNlMeansDenoising(gray, None, 30, 7, 21)
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return thresh
 
+    return thresh
 
 
 # -----------------------------
 # Detect text boxes using EasyOCR
 # -----------------------------
-
 def detect_boxes_easyocr(image_path: str):
     img = cv2.imread(image_path)
     if img is None:
-        raise ValueError("Image not found")
+        return []
 
     results = easy_reader.readtext(image_path)
 
@@ -57,6 +56,7 @@ def detect_boxes_easyocr(image_path: str):
     for (bbox, text, conf) in results:
         xs = [p[0] for p in bbox]
         ys = [p[1] for p in bbox]
+
         x1, x2 = int(min(xs)), int(max(xs))
         y1, y2 = int(min(ys)), int(max(ys))
 
@@ -69,7 +69,6 @@ def detect_boxes_easyocr(image_path: str):
     return boxes
 
 
-
 def sort_boxes_reading_order(boxes, y_threshold=25):
     """
     Sort boxes into proper reading order:
@@ -79,7 +78,6 @@ def sort_boxes_reading_order(boxes, y_threshold=25):
     if not boxes:
         return []
 
-    # Sort by top y first
     boxes = sorted(boxes, key=lambda b: b[1])
 
     lines = []
@@ -88,7 +86,6 @@ def sort_boxes_reading_order(boxes, y_threshold=25):
     for b in boxes[1:]:
         prev = current_line[-1]
 
-        # if y difference small => same line
         if abs(b[1] - prev[1]) < y_threshold:
             current_line.append(b)
         else:
@@ -97,7 +94,6 @@ def sort_boxes_reading_order(boxes, y_threshold=25):
 
     lines.append(current_line)
 
-    # Sort each line left to right
     sorted_boxes = []
     for line in lines:
         line_sorted = sorted(line, key=lambda b: b[0])
@@ -105,19 +101,19 @@ def sort_boxes_reading_order(boxes, y_threshold=25):
 
     return sorted_boxes
 
-# -----------------------------
-# TrOCR line OCR using detected boxes
-# -----------------------------
 
+# -----------------------------
+# TrOCR OCR for ONE image
+# -----------------------------
 def run_trocr_lines(image_path: str) -> str:
     img = cv2.imread(image_path)
     if img is None:
         return ""
 
     h, w = img.shape[:2]
+
     boxes = detect_boxes_easyocr(image_path)
     boxes = sort_boxes_reading_order(boxes)
-
 
     if not boxes:
         return ""
@@ -125,8 +121,6 @@ def run_trocr_lines(image_path: str) -> str:
     final_lines = []
 
     for (x1, y1, x2, y2) in boxes:
-
-        # clamp to image size
         x1 = max(0, min(w - 1, x1))
         x2 = max(0, min(w - 1, x2))
         y1 = max(0, min(h - 1, y1))
@@ -136,13 +130,13 @@ def run_trocr_lines(image_path: str) -> str:
             continue
 
         crop = img[y1:y2, x1:x2]
-
         if crop is None or crop.size == 0:
             continue
 
         processed = preprocess_crop(crop)
         if processed is None:
             continue
+
         pil_img = Image.fromarray(processed).convert("RGB")
 
         pixel_values = trocr_processor(images=pil_img, return_tensors="pt").pixel_values.to(DEVICE)
@@ -159,10 +153,48 @@ def run_trocr_lines(image_path: str) -> str:
 # -----------------------------
 # Final function used by backend
 # -----------------------------
+def hybrid_ocr(file_path: str):
+    """
+    Supports:
+    - JPG / PNG
+    - PDF (multi-page)
 
-def hybrid_ocr(image_path: str):
-    text = run_trocr_lines(image_path)
+    Returns:
+        text, engine_name, language
+    """
 
+    ext = os.path.splitext(file_path)[1].lower()
+
+    # -----------------------------
+    # PDF CASE
+    # -----------------------------
+    if ext == ".pdf":
+        # ✅ pdf2image conversion
+        page_images = pdf_to_images(file_path)
+
+        all_pages_text = []
+
+        for img_path in page_images:
+            page_text = run_trocr_lines(img_path)
+            if page_text.strip():
+                all_pages_text.append(page_text)
+
+        # delete temp images
+        for img_path in page_images:
+            if os.path.exists(img_path):
+                os.remove(img_path)
+
+        text = "\n\n".join(all_pages_text)
+
+    # -----------------------------
+    # IMAGE CASE
+    # -----------------------------
+    else:
+        text = run_trocr_lines(file_path)
+
+    # -----------------------------
+    # Language detect
+    # -----------------------------
     try:
         lang = detect(text) if text else "unknown"
     except:
