@@ -2,7 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
-
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
 # ---------- AUTH ----------
 from pydantic import BaseModel, Field
 
@@ -45,8 +46,10 @@ class EvaluateResponse(BaseModel):
     feedback: str
     language: str
     ocr_engine: str
-    missing_keywords: Optional[List[str]] = None
+    missing_keywords: List[str] = []
 
+    # ✅ ADD THIS
+    explainable_ai: Optional[Dict[str, Any]] = None
 
 # ---------- RESULTS ----------
 class ResultOut(BaseModel):
@@ -61,9 +64,12 @@ class ResultOut(BaseModel):
     model_answer_id: int
     created_at: datetime
 
+    # ✅ NEW (this is what frontend needs)
+    explainable_ai: Optional[Dict[str, Any]] = None
+
     class Config:
         from_attributes = True
-from pydantic import BaseModel
+
 
 
 

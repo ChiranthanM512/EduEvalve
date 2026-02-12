@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+import json
 
 from utils import get_db
 from models import Result
@@ -11,7 +12,20 @@ router = APIRouter(prefix="/results", tags=["Results"])
 
 @router.get("/", response_model=List[ResultOut])
 def get_all(db: Session = Depends(get_db)):
-    return db.query(Result).order_by(Result.id.desc()).all()
+    rows = db.query(Result).order_by(Result.id.desc()).all()
+
+    # ✅ Convert explainable_output JSON string into dict
+    for r in rows:
+        if r.explainable_output:
+            try:
+                r.explainable_ai = json.loads(r.explainable_output)
+            except:
+                r.explainable_ai = None
+        else:
+            r.explainable_ai = None
+
+    return rows
+
 
 @router.delete("/{result_id}")
 def delete_result(result_id: int, db: Session = Depends(get_db)):
