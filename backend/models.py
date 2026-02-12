@@ -29,22 +29,20 @@ class Result(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # file info
     file_path = Column(String(500), nullable=False)
 
-    # extracted output
     extracted_text = Column(Text, nullable=False)
-    ocr_engine = Column(String(50), nullable=False)  # "trocr" or "paddle"
+    ocr_engine = Column(String(50), nullable=False)
     language = Column(String(30), nullable=False)
 
-    # scoring
     score = Column(Float, nullable=False)
     feedback = Column(Text, nullable=False)
 
-    # keywords
     missing_keywords = Column(Text, nullable=True)
 
-    # relationship
+    # ✅ NEW FIELD
+    explainable_output = Column(Text, nullable=True)
+
     model_answer_id = Column(Integer, ForeignKey("model_answers.id"))
     model_answer = relationship("ModelAnswer", back_populates="results")
 
