@@ -1,13 +1,22 @@
 import React, { useState } from "react";
 import API from "../api";
 import logo from "../assets/logo.png";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Login({ setLogged }) {
   const [user, setUser] = useState({ username: "", password: "" });
   const [mode, setMode] = useState("login");
+  const [loading, setLoading] = useState(false);
 
   async function submit() {
     try {
+      if (!user.username || !user.password) {
+        alert("Please enter username and password");
+        return;
+      }
+
+      setLoading(true);
+
       if (mode === "register") {
         await API.post("/auth/register", user);
         alert("Registered successfully! Now login.");
@@ -19,74 +28,173 @@ export default function Login({ setLogged }) {
       setLogged(true);
     } catch (err) {
       alert(err?.response?.data?.detail || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   }
 
+  // ✅ Enter key works because of form submit
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!loading) submit();
+  }
+
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
+    <motion.div
+      style={styles.page}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.45 }}
+    >
+      {/* MAIN CARD */}
+      <motion.div
+        style={styles.card}
+        initial={{ opacity: 0, y: 25, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.55, ease: "easeOut" }}
+      >
         {/* LEFT SIDE */}
-        <div style={styles.left}>
+        <motion.div
+          style={styles.left}
+          initial={{ scale: 1.05 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+        >
           <div style={styles.overlay} />
 
-          <div style={styles.leftContent}>
-            <img src={logo} alt="EduEvalve Logo" style={styles.logo} />
+          <motion.div
+            style={styles.leftContent}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.55 }}
+          >
+            <motion.img
+              src={logo}
+              alt="EduEvalve Logo"
+              style={styles.logo}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.25, duration: 0.45 }}
+            />
 
-            <h1 style={styles.title}>EduEvalve</h1>
-            <p style={styles.subtitle}>
+            <motion.h1
+              style={styles.title}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.45 }}
+            >
+              EduEvalve
+            </motion.h1>
+
+            <motion.p
+              style={styles.subtitle}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 0.9, y: 0 }}
+              transition={{ delay: 0.38, duration: 0.45 }}
+            >
               AI-powered Answer Sheet Evaluation <br />
               (Hybrid OCR + Semantic Scoring)
-            </p>
-          </div>
-        </div>
+            </motion.p>
+          </motion.div>
+        </motion.div>
 
         {/* RIGHT SIDE */}
-        <div style={styles.right}>
-          <h2 style={styles.formTitle}>
-            {mode === "login" ? "Login" : "Register"}
-          </h2>
+        <motion.div
+          style={styles.right}
+          initial={{ opacity: 0, x: 18 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2, duration: 0.55 }}
+        >
+          {/* ✅ FORM (ENTER KEY WORKS) */}
+          <form onSubmit={handleSubmit}>
+            {/* Title Animation */}
+            <AnimatePresence mode="wait">
+              <motion.h2
+                key={mode}
+                style={styles.formTitle}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+              >
+                {mode === "login" ? "Login" : "Register"}
+              </motion.h2>
+            </AnimatePresence>
 
-          <label style={styles.label}>Username</label>
-          <input
-            style={styles.input}
-            placeholder="Enter username"
-            value={user.username}
-            onChange={(e) => setUser({ ...user, username: e.target.value })}
-          />
+            <label style={styles.label}>Username</label>
+            <motion.input
+              style={styles.input}
+              placeholder="Enter username"
+              value={user.username}
+              whileFocus={{ scale: 1.02 }}
+              transition={{ duration: 0.15 }}
+              onChange={(e) => setUser({ ...user, username: e.target.value })}
+            />
 
-          <label style={styles.label}>Password</label>
-          <input
-            style={styles.input}
-            type="password"
-            placeholder="Enter password"
-            value={user.password}
-            onChange={(e) => setUser({ ...user, password: e.target.value })}
-          />
+            <label style={styles.label}>Password</label>
+            <motion.input
+              style={styles.input}
+              type="password"
+              placeholder="Enter password"
+              value={user.password}
+              whileFocus={{ scale: 1.02 }}
+              transition={{ duration: 0.15 }}
+              onChange={(e) => setUser({ ...user, password: e.target.value })}
+            />
 
-          <button style={styles.button} onClick={submit}>
-            {mode === "login" ? "Login" : "Register"}
-          </button>
+            <motion.button
+              type="submit"
+              style={{
+                ...styles.button,
+                opacity: loading ? 0.7 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+              disabled={loading}
+              whileHover={!loading ? { y: -2, scale: 1.02 } : {}}
+              whileTap={!loading ? { scale: 0.98 } : {}}
+              transition={{ duration: 0.15 }}
+            >
+              {loading
+                ? "Please wait..."
+                : mode === "login"
+                ? "Login"
+                : "Register"}
+            </motion.button>
+          </form>
 
-          <p style={styles.switchText}>
-            {mode === "login" ? (
-              <>
-                New user?{" "}
-                <span style={styles.switchLink} onClick={() => setMode("register")}>
-                  Register
-                </span>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <span style={styles.switchLink} onClick={() => setMode("login")}>
-                  Login
-                </span>
-              </>
-            )}
-          </p>
-        </div>
-      </div>
-    </div>
+          {/* Switch text animation */}
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={mode + "-switch"}
+              style={styles.switchText}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              {mode === "login" ? (
+                <>
+                  New user?{" "}
+                  <span
+                    style={styles.switchLink}
+                    onClick={() => setMode("register")}
+                  >
+                    Register
+                  </span>
+                </>
+              ) : (
+                <>
+                  Already have an account?{" "}
+                  <span style={styles.switchLink} onClick={() => setMode("login")}>
+                    Login
+                  </span>
+                </>
+              )}
+            </motion.p>
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -180,27 +288,29 @@ const styles = {
   },
 
   input: {
+    width: "100%",
     padding: "12px",
     borderRadius: "10px",
     border: "1px solid #d1d5db",
     fontSize: "15px",
     outline: "none",
+    marginBottom: "10px",
   },
 
   button: {
-    marginTop: "15px",
+    width: "100%",
+    marginTop: "10px",
     padding: "12px",
     borderRadius: "10px",
     border: "none",
     background: "#2563eb",
     color: "white",
     fontSize: "16px",
-    cursor: "pointer",
     fontWeight: "600",
   },
 
   switchText: {
-    marginTop: "10px",
+    marginTop: "14px",
     fontSize: "14px",
   },
 
